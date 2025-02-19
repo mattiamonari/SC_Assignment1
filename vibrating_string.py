@@ -24,8 +24,8 @@ def solve_wave_equation(L=1.0, N=100, c=1.0, T=2.0, dt=0.001, initial_condition=
     u = np.zeros((3, N+1))  # 3 time levels: n, n+1, n+2
     
     # Set initial conditions (example with sin(2πx))
-    u[1,:] = initial_condition(x)  # Initial displacement, Ψ(x, t = 0)
-    u[0,:] = u[1,:]  # Initial velocity Ψ′(x, t = 0) = 0.
+    u[0,:] = initial_condition(x) # Initial displacement, Ψ(x, t = 0)
+    u[1,:] = u[0,:]  # Initial velocity Ψ′(x, t = 0) = 0.
     
     # Courant number
     r = (c*dt/dx)**2
@@ -74,12 +74,12 @@ def plot_wave_solution(times, solutions):
     return fig, update, len(times)
 
 
-times, solutions = solve_wave_equation(T=1, initial_condition= lambda x: np.sin(2*np.pi*x))
+times, solutions = solve_wave_equation(initial_condition= lambda x: np.sin(2*np.pi*x))
 fig, update, num_frames = plot_wave_solution(times, solutions)
 ani = animation.FuncAnimation(fig, update, frames=num_frames, interval=1, blit=True)
 plt.show()
 
-times, solutions = solve_wave_equation(initial_condition= lambda x: np.sin(5*np.pi*x))
+times, solutions = solve_wave_equation(T=5, initial_condition= lambda x: np.sin(5*np.pi*x))
 fig, update, num_frames = plot_wave_solution(times, solutions)
 ani = animation.FuncAnimation(fig, update, frames=num_frames, interval=1, blit=True)
 plt.show()
