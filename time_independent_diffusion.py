@@ -4,36 +4,86 @@ from tqdm import tqdm
 from numba import jit
 
 @jit(nopython=True)
-def core_jacobi(c, c_new, c_init):
-    """Core Jacobi iteration calculations"""
+def core_jacobi(c, c_new, c_init, objects_masks=[]):
+    """Core Jacobi iteration calculations with mask handling"""
     # Interior points
     for i in range(1, c.shape[0]-1):
         for j in range(1, c.shape[1]-1):
+            # Skip calculation if point is in any mask
+            skip = False
+            for mask in objects_masks:
+                if not mask[i,j]:
+                    c_new[i,j] = 0
+                    skip = True
+                    break
+            if skip:
+                continue
+            
             c_new[i,j] = 0.25 * (c[i+1,j] + c[i-1,j] + c[i,j+1] + c[i,j-1])
     
     # Periodic boundary condition along y-axis
     for i in range(1, c.shape[0]-1):
-        c_new[i,0] = 0.25 * (c[i+1,0] + c[i-1,0] + c[i,1] + c[i,-1])
-        c_new[i,-1] = 0.25 * (c[i+1,-1] + c[i-1,-1] + c[i,0] + c[i,-2])
+        skip = False
+        for mask in objects_masks:
+            if not mask[i,0]:
+                c_new[i,0] = 0
+                skip = True
+                break
+        if not skip:
+            c_new[i,0] = 0.25 * (c[i+1,0] + c[i-1,0] + c[i,1] + c[i,-1])
+            
+        skip = False
+        for mask in objects_masks:
+            if not mask[i,-1]:
+                c_new[i,-1] = 0
+                skip = True
+                break
+        if not skip:
+            c_new[i,-1] = 0.25 * (c[i+1,-1] + c[i-1,-1] + c[i,0] + c[i,-2])
     
-    # Apply initial conditions as minimum values CORRECT????
+    # Apply initial conditions as minimum values
     for i in range(c.shape[0]):
         for j in range(c.shape[1]):
             if c_init[i,j] > c_new[i,j]:
                 c_new[i,j] = c_init[i,j]
 
 @jit(nopython=True)
-def core_gauss_seidel(c, c_init):
-    """Core Gauss-Seidel iteration calculations"""
+def core_gauss_seidel(c, c_init, objects_masks=[]):
+    """Core Gauss-Seidel iteration calculations with mask handling"""
     # Interior points
     for i in range(1, c.shape[0]-1):
         for j in range(1, c.shape[1]-1):
+            # Skip calculation if point is in any mask
+            skip = False
+            for mask in objects_masks:
+                if not mask[i,j]:
+                    c[i,j] = 0
+                    skip = True
+                    break
+            if skip:
+                continue
+                
             c[i,j] = 0.25 * (c[i+1,j] + c[i-1,j] + c[i,j+1] + c[i,j-1])
     
     # Periodic boundary condition along y-axis
     for i in range(1, c.shape[0]-1):
-        c[i,0] = 0.25 * (c[i+1,0] + c[i-1,0] + c[i,1] + c[i,-1])
-        c[i,-1] = 0.25 * (c[i+1,-1] + c[i-1,-1] + c[i,0] + c[i,-2])
+        skip = False
+        for mask in objects_masks:
+            if not mask[i,0]:
+                c[i,0] = 0
+                skip = True
+                break
+        if not skip:
+            c[i,0] = 0.25 * (c[i+1,0] + c[i-1,0] + c[i,1] + c[i,-1])
+            
+        skip = False
+        for mask in objects_masks:
+            if not mask[i,-1]:
+                c[i,-1] = 0
+                skip = True
+                break
+        if not skip:
+            c[i,-1] = 0.25 * (c[i+1,-1] + c[i-1,-1] + c[i,0] + c[i,-2])
     
     # Apply initial conditions as minimum values
     for i in range(c.shape[0]):
@@ -42,23 +92,48 @@ def core_gauss_seidel(c, c_init):
                 c[i,j] = c_init[i,j]
 
 @jit(nopython=True)
-def core_sor(c, c_init, omega):
-    """Core SOR iteration calculations"""
+def core_sor(c, c_init, omega, objects_masks=[]):
+    """Core SOR iteration calculations with mask handling"""
     # Interior points
     for i in range(1, c.shape[0]-1):
         for j in range(1, c.shape[1]-1):
+            # Skip calculation if point is in any mask
+            skip = False
+            for mask in objects_masks:
+                if not mask[i,j]:
+                    c[i,j] = 0
+                    skip = True
+                    break
+            if skip:
+                continue
+                
             c[i,j] = (1 - omega) * c[i,j] + 0.25 * omega * (
                 c[i+1,j] + c[i-1,j] + c[i,j+1] + c[i,j-1]
             )
     
     # Periodic boundary condition along y-axis
     for i in range(1, c.shape[0]-1):
-        c[i,0] = (1 - omega) * c[i,0] + 0.25 * omega * (
-            c[i+1,0] + c[i-1,0] + c[i,1] + c[i,-1]
-        )
-        c[i,-1] = (1 - omega) * c[i,-1] + 0.25 * omega * (
-            c[i+1,-1] + c[i-1,-1] + c[i,0] + c[i,-2]
-        )
+        skip = False
+        for mask in objects_masks:
+            if not mask[i,0]:
+                c[i,0] = 0
+                skip = True
+                break
+        if not skip:
+            c[i,0] = (1 - omega) * c[i,0] + 0.25 * omega * (
+                c[i+1,0] + c[i-1,0] + c[i,1] + c[i,-1]
+            )
+            
+        skip = False
+        for mask in objects_masks:
+            if not mask[i,-1]:
+                c[i,-1] = 0
+                skip = True
+                break
+        if not skip:
+            c[i,-1] = (1 - omega) * c[i,-1] + 0.25 * omega * (
+                c[i+1,-1] + c[i-1,-1] + c[i,0] + c[i,-2]
+            )
     
     # Apply initial conditions as minimum values
     for i in range(c.shape[0]):
@@ -82,23 +157,16 @@ def solve_diffusion(grid_size=(100, 100), method='jacobi', omega=1.0, tol=1e-6, 
     # Main iteration loop
     for iteration in tqdm(range(max_iter)):
         if method == 'jacobi':
-            core_jacobi(c, c_new, c_init)
-            for obj in objects_masks:
-                c_new = np.multiply(c_new, obj)
-                c = np.multiply(c, obj)
+            core_jacobi(c, c_new, c_init, objects_masks)
             error = np.linalg.norm(c_new - c)
             c, c_new = c_new.copy(), c
         elif method == 'gauss-seidel':
             c_old = c.copy()
-            core_gauss_seidel(c, c_init)
-            for obj in objects_masks:
-                c = np.multiply(c, obj)
+            core_gauss_seidel(c, c_init, objects_masks)
             error = np.linalg.norm(c - c_old)
         else:  # SOR
             c_old = c.copy()
-            core_sor(c, c_init, omega)
-            for obj in objects_masks:
-                c = np.multiply(c, obj)
+            core_sor(c, c_init, omega, objects_masks)
             error = np.linalg.norm(c - c_old)
         
         # Apply object masks if provided
@@ -276,16 +344,6 @@ def create_circle_mask(grid_size, radius):
     for x in range(grid_size[0]):
         for y in range(grid_size[1]):
             if (x - center[0])**2 + (y - center[1])**2 <= radius**2:
-                mask[x, y] = True
-    return mask
-
-def create_triangle_mask(grid_size, base, height):  
-    """Creates a mask for the sink (zero concentration region)."""
-    mask = np.zeros(grid_size, dtype=np.bool_)
-    center = (grid_size[0] // 2, grid_size[1] // 2)
-    for x in range(grid_size[0]):
-        for y in range(grid_size[1]):
-            if (x - center[0])**2 + (y - center[1])**2 <= base**2 and y <= center[1] + height:
                 mask[x, y] = True
     return mask
 
