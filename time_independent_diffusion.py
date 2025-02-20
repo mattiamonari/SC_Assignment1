@@ -42,29 +42,29 @@ def core_gauss_seidel(c, c_init):
                 c[i,j] = c_init[i,j]
 
 @jit(nopython=True)
-def core_sor(c, c_new, c_init, omega):
+def core_sor(c, c_init, omega):
     """Core SOR iteration calculations"""
     # Interior points
     for i in range(1, c.shape[0]-1):
         for j in range(1, c.shape[1]-1):
-            c_new[i,j] = (1 - omega) * c[i,j] + 0.25 * omega * (
+            c[i,j] = (1 - omega) * c[i,j] + 0.25 * omega * (
                 c[i+1,j] + c[i-1,j] + c[i,j+1] + c[i,j-1]
             )
     
     # Periodic boundary condition along y-axis
     for i in range(1, c.shape[0]-1):
-        c_new[i,0] = (1 - omega) * c[i,0] + 0.25 * omega * (
+        c[i,0] = (1 - omega) * c[i,0] + 0.25 * omega * (
             c[i+1,0] + c[i-1,0] + c[i,1] + c[i,-1]
         )
-        c_new[i,-1] = (1 - omega) * c[i,-1] + 0.25 * omega * (
+        c[i,-1] = (1 - omega) * c[i,-1] + 0.25 * omega * (
             c[i+1,-1] + c[i-1,-1] + c[i,0] + c[i,-2]
         )
     
     # Apply initial conditions as minimum values
     for i in range(c.shape[0]):
         for j in range(c.shape[1]):
-            if c_init[i,j] > c_new[i,j]:
-                c_new[i,j] = c_init[i,j]
+            if c_init[i,j] > c[i,j]:
+                c[i,j] = c_init[i,j]
 
 def solve_diffusion(grid_size=(100, 100), method='jacobi', omega=1.0, tol=1e-6, max_iter=100000, objects_masks=[]):
     """Solve diffusion equation using specified method"""
@@ -90,9 +90,9 @@ def solve_diffusion(grid_size=(100, 100), method='jacobi', omega=1.0, tol=1e-6, 
             core_gauss_seidel(c, c_init)
             error = np.linalg.norm(c - c_old)
         else:  # SOR
-            core_sor(c, c_new, c_init, omega)
-            error = np.linalg.norm(c_new - c)
-            c, c_new = c_new.copy(), c
+            c_old = c.copy()
+            core_sor(c, c_init, omega)
+            error = np.linalg.norm(c - c_old)
         
         # Apply object masks if provided
         for object_mask in objects_masks:
@@ -167,8 +167,8 @@ def solve_diffusion_with_comparison(grid_size=(100, 100), tol=1e-6, max_iter=100
 
 def find_optimal_omega(tol=1e-6, max_iter=100000):
     # Use a wider range of N values
-    N_values = np.logspace(1, 2, 10, dtype=int)  # N from 10 to 100
-    omega_values = np.linspace(1.7, 2.0, 20)  # More omega values for better resolution
+    N_values = np.logspace(1, 2, 20, dtype=int)  # N from 10 to 100
+    omega_values = np.linspace(1.5, 2.0, 50)  # More omega values for better resolution
     
     # Store optimal omega and its convergence iterations for each N
     optimal_results = []
@@ -210,7 +210,7 @@ def find_optimal_omega(tol=1e-6, max_iter=100000):
     iterations_plot = [r['iterations'] for r in optimal_results]
     
     # Plot 1: Optimal omega vs N
-    ax1.semilogx(N_plot, omega_plot, 'o-')
+    ax1.plot(N_plot, omega_plot, 'o-')
     ax1.set_xlabel('Grid Size (N)', fontsize=12)
     ax1.set_ylabel('Optimal ω', fontsize=12)
     ax1.set_title('Optimal ω vs Grid Size', fontsize=14)
@@ -218,6 +218,7 @@ def find_optimal_omega(tol=1e-6, max_iter=100000):
     
     # Plot 2: Convergence iterations vs N
     ax2.loglog(N_plot, iterations_plot, 'o-')
+    ax2.loglog(N_plot, (np.array(N_plot) + 1) / (2*np.pi) * 13.8, 'r--')
     ax2.set_xlabel('Grid Size (N)', fontsize=12)
     ax2.set_ylabel('Number of Iterations', fontsize=12)
     ax2.set_title('Convergence Speed vs Grid Size', fontsize=14)
@@ -233,7 +234,7 @@ def find_optimal_omega(tol=1e-6, max_iter=100000):
         print(f"{result['N']}\t{result['omega']:.4f}\t{result['iterations']}")
     
     # Calculate theoretical optimal omega for comparison
-    theoretical_omega = [2 / (1 + np.sin(np.pi/N)) for N in N_plot]
+    theoretical_omega = [2 / (1 + np.sin(np.pi/(N + 1))) for N in N_plot]
     ax1.plot(N_plot, theoretical_omega, 'r--', label='Theoretical')
     ax1.legend()
     
@@ -252,11 +253,11 @@ if __name__ == "__main__":
     # results, fig = solve_diffusion_with_comparison()
     # plt.show()
     
-    # # Plot final solutions
+    # # # Plot final solutions
     # fig, axes = plt.subplots(2, 2, figsize=(12, 10))
     # axes = axes.ravel()
     
-    # methods_to_show = ['Jacobi', 'Gauss-Seidel', 'SOR (ω=1.70)', 'SOR (ω=2.00)']
+    # methods_to_show = ['Jacobi', 'Gauss-Seidel', 'SOR (ω=1.80)', 'SOR (ω=1.98)']
     
     # for ax, method_name in zip(axes, methods_to_show):
     #     result = next(r for r in results if r['name'] == method_name)
