@@ -83,23 +83,30 @@ def solve_diffusion(grid_size=(100, 100), method='jacobi', omega=1.0, tol=1e-6, 
     for iteration in tqdm(range(max_iter)):
         if method == 'jacobi':
             core_jacobi(c, c_new, c_init)
+            for obj in objects_masks:
+                c_new = np.multiply(c_new, obj)
+                c = np.multiply(c, obj)
             error = np.linalg.norm(c_new - c)
             c, c_new = c_new.copy(), c
         elif method == 'gauss-seidel':
             c_old = c.copy()
             core_gauss_seidel(c, c_init)
+            for obj in objects_masks:
+                c = np.multiply(c, obj)
             error = np.linalg.norm(c - c_old)
         else:  # SOR
             c_old = c.copy()
             core_sor(c, c_init, omega)
+            for obj in objects_masks:
+                c = np.multiply(c, obj)
             error = np.linalg.norm(c - c_old)
         
         # Apply object masks if provided
-        for object_mask in objects_masks:
-            for i in range(c.shape[0]):
-                for j in range(c.shape[1]):
-                    if not object_mask[i, j]:
-                        c_new[i, j] = 0  # Sink has zero concentration
+        # for object_mask in objects_masks:
+        #     for i in range(c.shape[0]):
+        #         for j in range(c.shape[1]):
+        #             if not object_mask[i, j]:
+        #                 c[i, j] = 0  # Sink has zero concentration
 
         errors.append(error)
         
@@ -117,7 +124,7 @@ def solve_diffusion_with_comparison(grid_size=(100, 100), tol=1e-6, max_iter=100
     ]
     
     # Add SOR with different omega values
-    for omega in np.linspace(1.7, 2.0, 4):
+    for omega in np.linspace(1.7, 1.98, 4):
         methods.append({
             'name': f'SOR (ω={omega:.2f})',
             'method': 'sor',
@@ -135,8 +142,22 @@ def solve_diffusion_with_comparison(grid_size=(100, 100), tol=1e-6, max_iter=100
             method=config['method'],
             omega=config['omega'],
             tol=tol,
-            max_iter=max_iter
+            max_iter=max_iter,
+            objects_masks=[
+                create_rectangle_mask(grid_size, (20, 1), (20, 40)),
+                create_rectangle_mask(grid_size, (1, 20), (40, 40)),
+                create_rectangle_mask(grid_size, (20, 1), (20, 60)),
+                # create_rectangle_mask(grid_size, (20, 20), (65, 15))
+                ]
         )
+
+        # fig, ax = plt.subplots(1, 1)
+        # im = ax.imshow(create_rectangle_mask(grid_size, (20, 1), (50, 50)), cmap='Reds', extent=[0, 1, 0, 1])
+        # ax.set_xlabel('x')
+        # ax.set_ylabel('y')
+        # plt.colorbar(im, ax=ax)
+        # plt.show()
+
         all_results.append({
             **config,
             'solution': solution,
@@ -245,38 +266,39 @@ def create_rectangle_mask(grid_size, object_size, start=None):
     mask = np.ones(grid_size, dtype=np.bool_)
     if not start:
         start = (grid_size[0] // 2 - object_size[0] // 2, grid_size[1] // 2 - object_size[1] // 2)
-    mask[start[0]:start[0]+object_size[0], start[1]:start[1]+object_size[0]] = False
+    mask[start[0]:start[0]+object_size[0], start[1]:start[1]+object_size[1]] = False
     return mask
 
 if __name__ == "__main__":
     # Run comparison
-    # results, fig = solve_diffusion_with_comparison()
-    # plt.show()
+    results, fig = solve_diffusion_with_comparison()
+    plt.show()
     
-    # # # Plot final solutions
-    # fig, axes = plt.subplots(2, 2, figsize=(12, 10))
-    # axes = axes.ravel()
+    print(np.isclose(results[0]['solution'], results[1]['solution'], atol=1e-4))
+    # # Plot final solutions
+    fig, axes = plt.subplots(3, 2, figsize=(12, 10))
+    axes = axes.ravel()
     
-    # methods_to_show = ['Jacobi', 'Gauss-Seidel', 'SOR (ω=1.80)', 'SOR (ω=1.98)']
+    methods_to_show = ['Jacobi', 'Gauss-Seidel', 'SOR (ω=1.80)', 'SOR (ω=1.98)']
     
-    # for ax, method_name in zip(axes, methods_to_show):
-    #     result = next(r for r in results if r['name'] == method_name)
-    #     im = ax.imshow(result['solution'], cmap='Reds', extent=[0, 1, 0, 1])
-    #     ax.set_title(f'{method_name}\n({result["iterations"]} iterations)')
-    #     ax.set_xlabel('x')
-    #     ax.set_ylabel('y')
-    #     plt.colorbar(im, ax=ax)
+    for i, ax in enumerate(axes):
+        result = results[i]
+        im = ax.imshow(result['solution'], cmap='Reds', extent=[0, 1, 0, 1])
+        ax.set_title(f'({result["iterations"]} iterations)')
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        plt.colorbar(im, ax=ax)
     
-    # plt.tight_layout()
-    # plt.show()
-
-    ####### J
-    resuts, fig = find_optimal_omega()
+    plt.tight_layout()
     plt.show()
 
-    ###### K
-    #Centered
-    mask1 = create_rectangle_mask((100, 100), (20, 20), (0,0))
-    #Not centerdx
-    mask2 = create_rectangle_mask((100, 100), (20, 20))
+    ####### J
+    # resuts, fig = find_optimal_omega()
+    # plt.show()
+
+    # ###### K
+    # #Centered
+    # mask1 = create_rectangle_mask((100, 100), (20, 20), (0,0))
+    # #Not centerdx
+    # mask2 = create_rectangle_mask((100, 100), (20, 20))
 
