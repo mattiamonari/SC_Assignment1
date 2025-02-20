@@ -62,8 +62,8 @@ def diffusion_equation(N=50, D=1.0, T=1.0, dt=0.0001, save_interval=100, output_
             # print(f"Saved at iteration {iteration}, time {t:.5f}")
 
     # Save the entire dataset
-    np.save(output_file, {'times': np.array(times), 'solutions': np.array(solutions)})
-    print(f"Simulation complete. Data saved to {output_file}.")
+    # np.save(output_file, {'times': np.array(times), 'solutions': np.array(solutions)})
+    # print(f"Simulation complete. Data saved to {output_file}.")
 
     return np.array(times), np.array(solutions)
 
@@ -233,14 +233,14 @@ def diffusion_equation_until_equilibrium(N=50, D=1.0, dt=0.0001, save_interval=1
         if iteration % save_interval == 0:
             times.append(t)
             solutions.append(c.copy())
-            print(f"Saved at iteration {iteration}, time {t:.5f}, max change {max_change:.2e}")
+            # print(f"Saved at iteration {iteration}, time {t:.5f}, max change {max_change:.2e}")
 
     else:
         print(f"Maximum iterations reached ({max_iterations}) without convergence.")
 
     # Save the entire dataset
-    np.save(output_file, {'times': np.array(times), 'solutions': np.array(solutions)})
-    print(f"Simulation complete. Data saved to {output_file}.")
+    # np.save(output_file, {'times': np.array(times), 'solutions': np.array(solutions)})
+    # print(f"Simulation complete. Data saved to {output_file}.")
 
     return np.array(times), np.array(solutions), t
 
