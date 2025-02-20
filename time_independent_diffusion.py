@@ -149,7 +149,8 @@ def solve_diffusion(grid_size=(100, 100), method='jacobi', omega=1.0, tol=1e-6, 
     
     # Set initial boundary conditions
     c[0, :] = 1.0  # top boundary
-    c[-1, :] = 0.0 # bottom boundary
+
+    c[-1, :] = 1.0 # bottom boundary
     c_init = c.copy()
     
     errors = []
@@ -215,6 +216,7 @@ def solve_diffusion_with_comparison(grid_size=(100, 100), tol=1e-6, max_iter=100
                 create_rectangle_mask(grid_size, (20, 1), (20, 40)),
                 create_rectangle_mask(grid_size, (1, 20), (40, 40)),
                 create_rectangle_mask(grid_size, (20, 1), (20, 60)),
+                create_circle_mask(grid_size, 10, (80, 50)),
                 # create_rectangle_mask(grid_size, (20, 20), (65, 15))
                 ]
         )
@@ -337,14 +339,14 @@ def create_rectangle_mask(grid_size, object_size, start=None):
     mask[start[0]:start[0]+object_size[0], start[1]:start[1]+object_size[1]] = False
     return mask
 
-def create_circle_mask(grid_size, radius):
+def create_circle_mask(grid_size, radius, center=None):
     """Creates a mask for the sink (zero concentration region)."""
-    mask = np.zeros(grid_size, dtype=np.bool_)
-    center = (grid_size[0] // 2, grid_size[1] // 2)
+    mask = np.ones(grid_size, dtype=np.bool_)
+    center = center or (grid_size[0] // 2, grid_size[1] // 2)
     for x in range(grid_size[0]):
         for y in range(grid_size[1]):
             if (x - center[0])**2 + (y - center[1])**2 <= radius**2:
-                mask[x, y] = True
+                mask[x, y] = False
     return mask
 
 if __name__ == "__main__":
@@ -352,7 +354,8 @@ if __name__ == "__main__":
     results, fig = solve_diffusion_with_comparison()
     plt.show()
     
-    print(np.isclose(results[0]['solution'], results[1]['solution'], atol=1e-4))
+    print(np.all(np.isclose(results[0]['solution'], results[1]['solution'], atol=1e-4) == True))
+    print(np.all(np.isclose(results[0]['solution'], results[-1]['solution'], atol=1e-4) == True))
     # # Plot final solutions
     fig, axes = plt.subplots(3, 2, figsize=(12, 10))
     axes = axes.ravel()
