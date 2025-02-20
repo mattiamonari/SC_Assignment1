@@ -269,6 +269,26 @@ def create_rectangle_mask(grid_size, object_size, start=None):
     mask[start[0]:start[0]+object_size[0], start[1]:start[1]+object_size[1]] = False
     return mask
 
+def create_circle_mask(grid_size, radius):
+    """Creates a mask for the sink (zero concentration region)."""
+    mask = np.zeros(grid_size, dtype=np.bool_)
+    center = (grid_size[0] // 2, grid_size[1] // 2)
+    for x in range(grid_size[0]):
+        for y in range(grid_size[1]):
+            if (x - center[0])**2 + (y - center[1])**2 <= radius**2:
+                mask[x, y] = True
+    return mask
+
+def create_triangle_mask(grid_size, base, height):  
+    """Creates a mask for the sink (zero concentration region)."""
+    mask = np.zeros(grid_size, dtype=np.bool_)
+    center = (grid_size[0] // 2, grid_size[1] // 2)
+    for x in range(grid_size[0]):
+        for y in range(grid_size[1]):
+            if (x - center[0])**2 + (y - center[1])**2 <= base**2 and y <= center[1] + height:
+                mask[x, y] = True
+    return mask
+
 if __name__ == "__main__":
     # Run comparison
     results, fig = solve_diffusion_with_comparison()
