@@ -4,7 +4,7 @@ from tqdm import tqdm
 from numba import jit
 
 @jit(nopython=True)
-def core_jacobi(c, c_new, c_init, objects_masks):
+def core_jacobi(c, c_new, c_init):
     """Core Jacobi iteration calculations"""
     # Interior points
     for i in range(1, c.shape[0]-1):
@@ -22,14 +22,8 @@ def core_jacobi(c, c_new, c_init, objects_masks):
             if c_init[i,j] > c_new[i,j]:
                 c_new[i,j] = c_init[i,j]
 
-    for object_mask in objects_masks:
-        for i in range(c.shape[0]):
-            for j in range(c.shape[1]):
-                if not object_mask[i, j]:
-                    c_new[i, j] = 0  # Sink has zero concentration
-
 @jit(nopython=True)
-def core_gauss_seidel(c, c_init, objects_masks=[]):
+def core_gauss_seidel(c, c_init):
     """Core Gauss-Seidel iteration calculations"""
     # Interior points
     for i in range(1, c.shape[0]-1):
@@ -47,14 +41,8 @@ def core_gauss_seidel(c, c_init, objects_masks=[]):
             if c_init[i,j] > c[i,j]:
                 c[i,j] = c_init[i,j]
 
-    for object_mask in objects_masks:
-        for i in range(c.shape[0]):
-            for j in range(c.shape[1]):
-                if not object_mask[i, j]:
-                     c[i, j] = 0  # Sink has zero concentration
-
 @jit(nopython=True)
-def core_sor(c, c_new, c_init, omega, objects_masks):
+def core_sor(c, c_new, c_init, omega):
     """Core SOR iteration calculations"""
     # Interior points
     for i in range(1, c.shape[0]-1):
@@ -77,14 +65,8 @@ def core_sor(c, c_new, c_init, omega, objects_masks):
         for j in range(c.shape[1]):
             if c_init[i,j] > c_new[i,j]:
                 c_new[i,j] = c_init[i,j]
-    
-    for object_mask in objects_masks:
-        for i in range(c.shape[0]):
-            for j in range(c.shape[1]):
-                if not object_mask[i, j]:
-                     c_new[i, j] = 0  # Sink has zero concentration
 
-def solve_diffusion(grid_size=(100, 100), method='jacobi', omega=1.0, tol=1e-6, max_iter=100000):
+def solve_diffusion(grid_size=(100, 100), method='jacobi', omega=1.0, tol=1e-6, max_iter=100000, objects_masks=[]):
     """Solve diffusion equation using specified method"""
     # Initialize arrays
     c = np.zeros(grid_size)
@@ -112,6 +94,13 @@ def solve_diffusion(grid_size=(100, 100), method='jacobi', omega=1.0, tol=1e-6, 
             error = np.linalg.norm(c_new - c)
             c, c_new = c_new.copy(), c
         
+        # Apply object masks if provided
+        for object_mask in objects_masks:
+            for i in range(c.shape[0]):
+                for j in range(c.shape[1]):
+                    if not object_mask[i, j]:
+                        c_new[i, j] = 0  # Sink has zero concentration
+
         errors.append(error)
         
         if error < tol:
@@ -177,73 +166,85 @@ def solve_diffusion_with_comparison(grid_size=(100, 100), tol=1e-6, max_iter=100
     return all_results, fig
 
 def find_optimal_omega(tol=1e-6, max_iter=100000):
-    methods = []
-    omega_values = np.linspace(1.7, 2.0, 10)
-    N_values = np.logspace(1,1.5,10, dtype=int)
-
-    # Add SOR with different omega values
-    for omega in omega_values:
-        methods.append({
-            'name': f'SOR (ω={omega:.2f})',
-            'method': 'sor',
-            'omega': omega,
-            'color': plt.cm.autumn(omega/2),
-            'linestyle': '--'
-        })
+    # Use a wider range of N values
+    N_values = np.logspace(1, 2, 10, dtype=int)  # N from 10 to 100
+    omega_values = np.linspace(1.7, 2.0, 20)  # More omega values for better resolution
     
-    # Run all methods
-    all_results = []
+    # Store optimal omega and its convergence iterations for each N
+    optimal_results = []
+    
+    # For each grid size N
     for N in N_values:
-        print(f"\nRunning all config with N={N}...")
-        for config in methods:
-            solution, errors, iters = solve_diffusion(
+        print(f"\nTesting grid size N={N}")
+        min_iterations = float('inf')
+        best_omega = None
+        
+        # Test each omega value
+        for omega in omega_values:
+            _, errors, iterations = solve_diffusion(
                 grid_size=(N, N),
-                method=config['method'],
-                omega=config['omega'],
+                method='sor',
+                omega=omega,
                 tol=tol,
                 max_iter=max_iter
             )
-            all_results.append({
-                **config,
-                'solution': solution,
-                'errors': errors,
-                'iterations': iters,
-                'N': N
-            })
-
-
-    # Create comparison plot
-    fig = plt.figure(figsize=(12, 8))
-    plt.grid(True, which="both", ls="-", alpha=0.2)
-
-    optimal_omega = []
-    for N in N_values:
-        print("Unordered",[el['iterations'] for el in all_results if el['N'] == N])
-        n_results = sorted([el for el in all_results if el['N'] == N], key=lambda d: d['iterations'])
-        print("Ordered",[el['iterations'] for el in n_results])
-        optimal_omega.append(n_results[0]['omega'])
-    plt.semilogx(
-        N_values,
-        optimal_omega, 
-        # color=result['color'],
-        # linestyle=result['linestyle'],
-        # label=f"{result['name']} ({result['iterations']} iter)"
-    )
+            
+            # If this omega gives faster convergence, store it
+            if iterations < min_iterations:
+                min_iterations = iterations
+                best_omega = omega
+        
+        optimal_results.append({
+            'N': N,
+            'omega': best_omega,
+            'iterations': min_iterations
+        })
+        print(f"N={N}: Best omega={best_omega:.4f} with {min_iterations} iterations")
     
-    plt.xlabel('Iteration', fontsize=12)
-    plt.ylabel('Error (L2 norm)', fontsize=12)
-    plt.title('Convergence Comparison of Different Methods', fontsize=14)
-    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+    # Create plot
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+    
+    # Plot optimal omega vs N
+    N_plot = [r['N'] for r in optimal_results]
+    omega_plot = [r['omega'] for r in optimal_results]
+    iterations_plot = [r['iterations'] for r in optimal_results]
+    
+    # Plot 1: Optimal omega vs N
+    ax1.semilogx(N_plot, omega_plot, 'o-')
+    ax1.set_xlabel('Grid Size (N)', fontsize=12)
+    ax1.set_ylabel('Optimal ω', fontsize=12)
+    ax1.set_title('Optimal ω vs Grid Size', fontsize=14)
+    ax1.grid(True)
+    
+    # Plot 2: Convergence iterations vs N
+    ax2.loglog(N_plot, iterations_plot, 'o-')
+    ax2.set_xlabel('Grid Size (N)', fontsize=12)
+    ax2.set_ylabel('Number of Iterations', fontsize=12)
+    ax2.set_title('Convergence Speed vs Grid Size', fontsize=14)
+    ax2.grid(True)
+    
     plt.tight_layout()
     
-    return all_results, fig
+    # Print numerical results
+    print("\nFinal Results:")
+    print("N\tOptimal ω\tIterations")
+    print("-" * 40)
+    for result in optimal_results:
+        print(f"{result['N']}\t{result['omega']:.4f}\t{result['iterations']}")
+    
+    # Calculate theoretical optimal omega for comparison
+    theoretical_omega = [2 / (1 + np.sin(np.pi/N)) for N in N_plot]
+    ax1.plot(N_plot, theoretical_omega, 'r--', label='Theoretical')
+    ax1.legend()
+    
+    return optimal_results, fig
 
-def create_object_mask(grid_size, object_size, start=None):
+def create_rectangle_mask(grid_size, object_size, start=None):
     """Creates a mask for the sink (zero concentration region)."""
     mask = np.ones(grid_size, dtype=np.bool_)
     if not start:
-        start = (grid_size[0] // 2 - object_size // 2, grid_size[1] // 2 - object_size // 2)
-    mask[start[0]:start[0]+object_size, start[1]:start[1]+object_size] = False
+        start = (grid_size[0] // 2 - object_size[0] // 2, grid_size[1] // 2 - object_size[1] // 2)
+    mask[start[0]:start[0]+object_size[0], start[1]:start[1]+object_size[0]] = False
     return mask
 
 if __name__ == "__main__":
@@ -269,12 +270,12 @@ if __name__ == "__main__":
     # plt.show()
 
     ####### J
-    results, fig = find_optimal_omega()
+    resuts, fig = find_optimal_omega()
     plt.show()
 
     ###### K
     #Centered
-    mask1 = create_object_mask((100, 100), (20, 20), (0,0))
+    mask1 = create_rectangle_mask((100, 100), (20, 20), (0,0))
     #Not centerdx
-    mask2 = create_object_mask((100, 100), (20, 20))
+    mask2 = create_rectangle_mask((100, 100), (20, 20))
 
