@@ -268,11 +268,11 @@ def solve_diffusion_with_comparison(grid_size=(50, 50), tol=1e-6, max_iter=10000
     
     return all_results, fig
 
-def find_optimal_omega(tol=1e-6, max_iter=100000):
+def find_optimal_omega(tol=1e-6, max_iter=100000, N_values=None, objects_masks=None):
     # Use a wider range of N values
-    N_values = np.logspace(1, 2, 20, dtype=int)  # N from 10 to 100
+    N_values = N_values or np.logspace(1, 2, 20, dtype=int)  # N from 10 to 100
     omega_values = np.linspace(1.5, 1.99, 50)  # More omega values for better resolution
-    
+    objects_added = "_objects" if objects_masks else ""
     # Store optimal omega and its convergence iterations for each N
     optimal_results = []
     
@@ -289,7 +289,8 @@ def find_optimal_omega(tol=1e-6, max_iter=100000):
                 method='sor',
                 omega=omega,
                 tol=tol,
-                max_iter=max_iter
+                max_iter=max_iter,
+                objects_masks=objects_masks
             )
             
             # If this omega gives faster convergence, store it
@@ -333,7 +334,7 @@ def find_optimal_omega(tol=1e-6, max_iter=100000):
     # ax2.grid(True)
     
     plt.tight_layout()
-    plt.savefig('./images/optimal_omega_vs_N.pdf')
+    plt.savefig(f'./images/optimal_omega_vs_N{objects_added}.pdf')
     plt.show()
     
     # Print numerical results

@@ -68,26 +68,27 @@ def plot_wave_solution(times, solutions):
     
     return fig, update, len(times)
 
-#Increase font 
-plt.rcParams.update({'font.size': 14})
+if __name__ == '__main__':
+    #Increase font 
+    plt.rcParams.update({'font.size': 14})
 
-times, solutions = solve_wave_equation(initial_condition= lambda x: np.sin(2*np.pi*x))
-fig, update, num_frames = plot_wave_solution(times, solutions)
-ani = animation.FuncAnimation(fig, update, frames=num_frames, interval=1, blit=True)
-plt.tight_layout()
-plt.show()
+    times, solutions = solve_wave_equation(initial_condition= lambda x: np.sin(2*np.pi*x))
+    fig, update, num_frames = plot_wave_solution(times, solutions)
+    ani = animation.FuncAnimation(fig, update, frames=num_frames, interval=1, blit=True)
+    plt.tight_layout()
+    plt.show()
 
-times, solutions = solve_wave_equation(T=5, initial_condition= lambda x: np.sin(5*np.pi*x))
-fig, update, num_frames = plot_wave_solution(times, solutions)
-ani = animation.FuncAnimation(fig, update, frames=num_frames, interval=1, blit=True)
-plt.tight_layout()
-plt.show()
+    times, solutions = solve_wave_equation(T=5, initial_condition= lambda x: np.sin(5*np.pi*x))
+    fig, update, num_frames = plot_wave_solution(times, solutions)
+    ani = animation.FuncAnimation(fig, update, frames=num_frames, interval=1, blit=True)
+    plt.tight_layout()
+    plt.show()
 
-initial_condition = lambda x: np.where((np.array(x) > 1/5) & (np.array(x) < 2/5), np.sin(5*np.pi*x), 0)
-times, solutions = solve_wave_equation(T=2, initial_condition = initial_condition)
-fig, update, num_frames = plot_wave_solution(times, solutions)
-ani = animation.FuncAnimation(fig, update, frames=num_frames, interval=1, blit=True)
-FFwriter = animation.FFMpegWriter(fps=60)
-plt.tight_layout()
-ani.save('animation.mp4', writer = FFwriter, dpi=600)
-plt.show()
+    initial_condition = lambda x: np.where((np.array(x) > 1/5) & (np.array(x) < 2/5), np.sin(5*np.pi*x), 0)
+    times, solutions = solve_wave_equation(T=2, initial_condition = initial_condition)
+    fig, update, num_frames = plot_wave_solution(times, solutions)
+    ani = animation.FuncAnimation(fig, update, frames=num_frames, interval=1, blit=True)
+    FFwriter = animation.FFMpegWriter(fps=60)
+    plt.tight_layout()
+    ani.save('animation.mp4', writer = FFwriter, dpi=600)
+    plt.show()
