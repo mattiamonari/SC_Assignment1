@@ -3,6 +3,10 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 from numba import jit
 
+
+__all__ = ['solve_diffusion_with_comparison', 'find_optimal_omega', 
+           'create_rectangle_mask', 'create_circle_mask']
+
 @jit(nopython=True)
 def core_jacobi(c, c_new, c_init, objects_masks=None):
     """Core Jacobi iteration calculations with mask handling"""
@@ -166,7 +170,7 @@ def solve_diffusion(grid_size=(100, 100), method='jacobi', omega=1.0, tol=1e-6, 
     errors = []
     
     # Main iteration loop
-    for iteration in tqdm(range(max_iter)):
+    for iteration in range(max_iter):
         if method == 'jacobi':
             core_jacobi(c, c_new, c_init, objects_masks)
             error = np.linalg.norm(c_new - c)
@@ -195,12 +199,15 @@ def solve_diffusion(grid_size=(100, 100), method='jacobi', omega=1.0, tol=1e-6, 
     print("Warning: Maximum iterations reached without convergence")
     return c, np.array(errors), max_iter
 
-def solve_diffusion_with_comparison(grid_size=(50, 50), tol=1e-6, max_iter=100000):
+def solve_diffusion_with_comparison(grid_size=(50, 50), tol=1e-6, max_iter=100000, objects_masks=[]):
     # Define methods
     methods = [
         {'name': 'Jacobi', 'method': 'jacobi', 'omega': 1.0, 'color': 'blue', 'linestyle': '-'},
         {'name': 'Gauss-Seidel', 'method': 'gauss-seidel', 'omega': 1.0, 'color': 'green', 'linestyle': '-'},
     ]
+
+    objects_added = "_objects" if objects_masks else ""
+    objects_title = " with Objects" if objects_masks else ""
     
     # Add SOR with different omega values
     for i, omega in enumerate(np.linspace(1.7, 1.98, 4)):
@@ -214,7 +221,7 @@ def solve_diffusion_with_comparison(grid_size=(50, 50), tol=1e-6, max_iter=10000
     
     # Run all methods
     all_results = []
-    for config in methods:
+    for config in tqdm(methods, desc="Running comparison..."):
         print(f"\nRunning {config['name']}...")
         solution, errors, iters = solve_diffusion(
             grid_size=grid_size,
@@ -222,13 +229,7 @@ def solve_diffusion_with_comparison(grid_size=(50, 50), tol=1e-6, max_iter=10000
             omega=config['omega'],
             tol=tol,
             max_iter=max_iter,
-            objects_masks=[
-                create_rectangle_mask(grid_size, (10, 10), (10, 10)),
-                # create_rectangle_mask(grid_size, (1, 20), (40, 40)),
-                # create_rectangle_mask(grid_size, (20, 1), (20, 60)),
-                create_circle_mask(grid_size, 5, (15, 35)),
-                # create_rectangle_mask(grid_size, (20, 20), (65, 15))
-                ]
+            objects_masks=objects_masks
         )
 
         # fig, ax = plt.subplots(1, 1)
@@ -260,10 +261,10 @@ def solve_diffusion_with_comparison(grid_size=(50, 50), tol=1e-6, max_iter=10000
     
     plt.xlabel('Iteration', fontsize=14)
     plt.ylabel('Error (L2 norm)', fontsize=14)
-    plt.title('Convergence Comparison of Different Methods with Objects', fontsize=14)
+    plt.title(f'Convergence Comparison of Different Methods{objects_title}', fontsize=14)
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
     plt.tight_layout()
-    plt.savefig('./images/convergence_comparison_objects.pdf')
+    plt.savefig(f'./Images/convergence_comparison{objects_added}.pdf')
     
     return all_results, fig
 
@@ -276,7 +277,7 @@ def find_optimal_omega(tol=1e-6, max_iter=100000):
     optimal_results = []
     
     # For each grid size N
-    for N in N_values:
+    for N in tqdm(N_values, desc="Finding optimal omega..."):
         print(f"\nTesting grid size N={N}")
         min_iterations = float('inf')
         best_omega = None
@@ -366,8 +367,20 @@ if __name__ == "__main__":
     plt.rcParams.update({'font.size': 14})
 
     # Run comparison
-    results, fig = solve_diffusion_with_comparison()
-    plt.tight_layout()
+    grid_size = (50, 50)
+    results, fig = solve_diffusion_with_comparison(grid_size=grid_size)
+    plt.show()
+
+    results, fig = solve_diffusion_with_comparison(
+        grid_size=grid_size,
+        objects_masks=[
+                create_rectangle_mask(grid_size, (10, 10), (10, 10)),
+                # create_rectangle_mask(grid_size, (1, 20), (40, 40)),
+                # create_rectangle_mask(grid_size, (20, 1), (20, 60)),
+                create_circle_mask(grid_size, 5, (15, 35)),
+                # create_rectangle_mask(grid_size, (20, 20), (65, 15))
+                ]
+    )
     plt.show()
     
     print(np.all(np.isclose(results[0]['solution'], results[1]['solution'], atol=1e-4) == True))
@@ -381,7 +394,7 @@ if __name__ == "__main__":
     for i, ax in enumerate(axes):
         result = results[i]
         im = ax.imshow(result['solution'], cmap='Reds', extent=[0, 1, 0, 1])
-        ax.set_title(f'({result["iterations"]} iterations)')
+        ax.set_title(f"{result['method']}, ω = {result['omega']:.2f} ({result['iterations']} iterations)")
         ax.set_xlabel('x')
         ax.set_ylabel('y')
         plt.colorbar(im, ax=ax)
@@ -405,9 +418,4 @@ if __name__ == "__main__":
     plt.tight_layout()
     plt.show()
 
-    ###### K
-    #Centered
-    mask1 = create_rectangle_mask((100, 100), (20, 20), (0,0))
-    #Not centerdx
-    mask2 = create_rectangle_mask((100, 100), (20, 20))
 
