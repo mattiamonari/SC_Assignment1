@@ -4,6 +4,9 @@ from matplotlib import animation
 from IPython.display import HTML
 from scipy.special import erfc
 
+__all__ = ['diffusion_equation', 'plot_diffusion', 'compare_solution', 'plot_multiple_concentrations',
+           'diffusion_equation_until_equilibrium', 'animate_diffusion']
+
 def diffusion_equation(N=50, D=1.0, T=1.0, dt=0.0001, save_interval=100, output_file='diffusion_data.npy'):
     """
     Simulates the 2D time-dependent diffusion equation using the explicit finite difference scheme.
