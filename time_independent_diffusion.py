@@ -4,18 +4,19 @@ from tqdm import tqdm
 from numba import jit
 
 @jit(nopython=True)
-def core_jacobi(c, c_new, c_init, objects_masks=[]):
+def core_jacobi(c, c_new, c_init, objects_masks=None):
     """Core Jacobi iteration calculations with mask handling"""
     # Interior points
     for i in range(1, c.shape[0]-1):
         for j in range(1, c.shape[1]-1):
             # Skip calculation if point is in any mask
             skip = False
-            for mask in objects_masks:
-                if not mask[i,j]:
-                    c_new[i,j] = 0
-                    skip = True
-                    break
+            if objects_masks:
+                for mask in objects_masks:
+                    if not mask[i,j]:
+                        c_new[i,j] = 0
+                        skip = True
+                        break
             if skip:
                 continue
             
@@ -24,20 +25,22 @@ def core_jacobi(c, c_new, c_init, objects_masks=[]):
     # Periodic boundary condition along y-axis
     for i in range(1, c.shape[0]-1):
         skip = False
-        for mask in objects_masks:
-            if not mask[i,0]:
-                c_new[i,0] = 0
-                skip = True
-                break
+        if objects_masks:
+            for mask in objects_masks:
+                if not mask[i,0]:
+                    c_new[i,0] = 0
+                    skip = True
+                    break
         if not skip:
             c_new[i,0] = 0.25 * (c[i+1,0] + c[i-1,0] + c[i,1] + c[i,-1])
             
         skip = False
-        for mask in objects_masks:
-            if not mask[i,-1]:
-                c_new[i,-1] = 0
-                skip = True
-                break
+        if objects_masks:
+            for mask in objects_masks:
+                if not mask[i,-1]:
+                    c_new[i,-1] = 0
+                    skip = True
+                    break
         if not skip:
             c_new[i,-1] = 0.25 * (c[i+1,-1] + c[i-1,-1] + c[i,0] + c[i,-2])
     
@@ -48,18 +51,19 @@ def core_jacobi(c, c_new, c_init, objects_masks=[]):
                 c_new[i,j] = c_init[i,j]
 
 @jit(nopython=True)
-def core_gauss_seidel(c, c_init, objects_masks=[]):
+def core_gauss_seidel(c, c_init, objects_masks=None):
     """Core Gauss-Seidel iteration calculations with mask handling"""
     # Interior points
     for i in range(1, c.shape[0]-1):
         for j in range(1, c.shape[1]-1):
             # Skip calculation if point is in any mask
             skip = False
-            for mask in objects_masks:
-                if not mask[i,j]:
-                    c[i,j] = 0
-                    skip = True
-                    break
+            if objects_masks:
+                for mask in objects_masks:
+                    if not mask[i,j]:
+                        c[i,j] = 0
+                        skip = True
+                        break
             if skip:
                 continue
                 
@@ -68,20 +72,22 @@ def core_gauss_seidel(c, c_init, objects_masks=[]):
     # Periodic boundary condition along y-axis
     for i in range(1, c.shape[0]-1):
         skip = False
-        for mask in objects_masks:
-            if not mask[i,0]:
-                c[i,0] = 0
-                skip = True
-                break
+        if objects_masks:
+            for mask in objects_masks:
+                if not mask[i,0]:
+                    c[i,0] = 0
+                    skip = True
+                    break
         if not skip:
             c[i,0] = 0.25 * (c[i+1,0] + c[i-1,0] + c[i,1] + c[i,-1])
             
         skip = False
-        for mask in objects_masks:
-            if not mask[i,-1]:
-                c[i,-1] = 0
-                skip = True
-                break
+        if objects_masks:
+            for mask in objects_masks:
+                if not mask[i,-1]:
+                    c[i,-1] = 0
+                    skip = True
+                    break
         if not skip:
             c[i,-1] = 0.25 * (c[i+1,-1] + c[i-1,-1] + c[i,0] + c[i,-2])
     
@@ -92,18 +98,19 @@ def core_gauss_seidel(c, c_init, objects_masks=[]):
                 c[i,j] = c_init[i,j]
 
 @jit(nopython=True)
-def core_sor(c, c_init, omega, objects_masks=[]):
+def core_sor(c, c_init, omega, objects_masks=None):
     """Core SOR iteration calculations with mask handling"""
     # Interior points
     for i in range(1, c.shape[0]-1):
         for j in range(1, c.shape[1]-1):
             # Skip calculation if point is in any mask
             skip = False
-            for mask in objects_masks:
-                if not mask[i,j]:
-                    c[i,j] = 0
-                    skip = True
-                    break
+            if objects_masks:
+                for mask in objects_masks:
+                    if not mask[i,j]:
+                        c[i,j] = 0
+                        skip = True
+                        break
             if skip:
                 continue
                 
@@ -114,22 +121,24 @@ def core_sor(c, c_init, omega, objects_masks=[]):
     # Periodic boundary condition along y-axis
     for i in range(1, c.shape[0]-1):
         skip = False
-        for mask in objects_masks:
-            if not mask[i,0]:
-                c[i,0] = 0
-                skip = True
-                break
+        if objects_masks:
+            for mask in objects_masks:
+                if not mask[i,0]:
+                    c[i,0] = 0
+                    skip = True
+                    break
         if not skip:
             c[i,0] = (1 - omega) * c[i,0] + 0.25 * omega * (
                 c[i+1,0] + c[i-1,0] + c[i,1] + c[i,-1]
             )
             
         skip = False
-        for mask in objects_masks:
-            if not mask[i,-1]:
-                c[i,-1] = 0
-                skip = True
-                break
+        if objects_masks:
+            for mask in objects_masks:
+                if not mask[i,-1]:
+                    c[i,-1] = 0
+                    skip = True
+                    break
         if not skip:
             c[i,-1] = (1 - omega) * c[i,-1] + 0.25 * omega * (
                 c[i+1,-1] + c[i-1,-1] + c[i,0] + c[i,-2]
@@ -141,16 +150,17 @@ def core_sor(c, c_init, omega, objects_masks=[]):
             if c_init[i,j] > c[i,j]:
                 c[i,j] = c_init[i,j]
 
-def solve_diffusion(grid_size=(100, 100), method='jacobi', omega=1.0, tol=1e-6, max_iter=100000, objects_masks=[]):
+def solve_diffusion(grid_size=(100, 100), method='jacobi', omega=1.0, tol=1e-6, max_iter=100000, objects_masks=None):
     """Solve diffusion equation using specified method"""
     # Initialize arrays
+    objects_masks = objects_masks or [np.ones(grid_size, dtype=np.bool_)]
     c = np.zeros(grid_size)
     c_new = np.zeros(grid_size)
     
     # Set initial boundary conditions
     c[0, :] = 1.0  # top boundary
 
-    c[-1, :] = 1.0 # bottom boundary
+    c[-1, :] = 0.0 # bottom boundary
     c_init = c.copy()
     
     errors = []
@@ -185,7 +195,7 @@ def solve_diffusion(grid_size=(100, 100), method='jacobi', omega=1.0, tol=1e-6, 
     print("Warning: Maximum iterations reached without convergence")
     return c, np.array(errors), max_iter
 
-def solve_diffusion_with_comparison(grid_size=(100, 100), tol=1e-6, max_iter=100000):
+def solve_diffusion_with_comparison(grid_size=(50, 50), tol=1e-6, max_iter=100000):
     # Define methods
     methods = [
         {'name': 'Jacobi', 'method': 'jacobi', 'omega': 1.0, 'color': 'blue', 'linestyle': '-'},
@@ -193,12 +203,12 @@ def solve_diffusion_with_comparison(grid_size=(100, 100), tol=1e-6, max_iter=100
     ]
     
     # Add SOR with different omega values
-    for omega in np.linspace(1.7, 1.98, 4):
+    for i, omega in enumerate(np.linspace(1.7, 1.98, 4)):
         methods.append({
             'name': f'SOR (ω={omega:.2f})',
             'method': 'sor',
             'omega': omega,
-            'color': plt.cm.autumn(omega/2),
+            'color': plt.cm.Reds((i+1) / 5),
             'linestyle': '--'
         })
     
@@ -213,10 +223,10 @@ def solve_diffusion_with_comparison(grid_size=(100, 100), tol=1e-6, max_iter=100
             tol=tol,
             max_iter=max_iter,
             objects_masks=[
-                create_rectangle_mask(grid_size, (20, 1), (20, 40)),
-                create_rectangle_mask(grid_size, (1, 20), (40, 40)),
-                create_rectangle_mask(grid_size, (20, 1), (20, 60)),
-                create_circle_mask(grid_size, 10, (80, 50)),
+                create_rectangle_mask(grid_size, (10, 10), (10, 10)),
+                # create_rectangle_mask(grid_size, (1, 20), (40, 40)),
+                # create_rectangle_mask(grid_size, (20, 1), (20, 60)),
+                create_circle_mask(grid_size, 5, (15, 35)),
                 # create_rectangle_mask(grid_size, (20, 20), (65, 15))
                 ]
         )
@@ -237,7 +247,7 @@ def solve_diffusion_with_comparison(grid_size=(100, 100), tol=1e-6, max_iter=100
         print(f"Converged after {iters + 1} iterations")
     
     # Create comparison plot
-    fig = plt.figure(figsize=(12, 8))
+    fig = plt.figure(figsize=(10, 6))
     plt.grid(True, which="both", ls="-", alpha=0.2)
     
     for result in all_results:
@@ -250,16 +260,17 @@ def solve_diffusion_with_comparison(grid_size=(100, 100), tol=1e-6, max_iter=100
     
     plt.xlabel('Iteration', fontsize=12)
     plt.ylabel('Error (L2 norm)', fontsize=12)
-    plt.title('Convergence Comparison of Different Methods', fontsize=14)
+    plt.title('Convergence Comparison of Different Methods with Objects', fontsize=14)
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
     plt.tight_layout()
+    plt.savefig('./Images/convergence_comparison_objects.pdf')
     
     return all_results, fig
 
 def find_optimal_omega(tol=1e-6, max_iter=100000):
     # Use a wider range of N values
     N_values = np.logspace(1, 2, 20, dtype=int)  # N from 10 to 100
-    omega_values = np.linspace(1.5, 2.0, 50)  # More omega values for better resolution
+    omega_values = np.linspace(1.5, 1.99, 50)  # More omega values for better resolution
     
     # Store optimal omega and its convergence iterations for each N
     optimal_results = []
@@ -293,7 +304,7 @@ def find_optimal_omega(tol=1e-6, max_iter=100000):
         print(f"N={N}: Best omega={best_omega:.4f} with {min_iterations} iterations")
     
     # Create plot
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+    fig, ax = plt.subplots(1, 1, figsize=(10, 6))
     
     # Plot optimal omega vs N
     N_plot = [r['N'] for r in optimal_results]
@@ -301,21 +312,28 @@ def find_optimal_omega(tol=1e-6, max_iter=100000):
     iterations_plot = [r['iterations'] for r in optimal_results]
     
     # Plot 1: Optimal omega vs N
-    ax1.plot(N_plot, omega_plot, 'o-')
-    ax1.set_xlabel('Grid Size (N)', fontsize=12)
-    ax1.set_ylabel('Optimal ω', fontsize=12)
-    ax1.set_title('Optimal ω vs Grid Size', fontsize=14)
-    ax1.grid(True)
+    ax.plot(N_plot, omega_plot, 'o-')
+    # Calculate theoretical optimal omega for comparison
+    theoretical_omega = [2 / (1 + np.sin(np.pi/(N + 1))) for N in N_plot]
+    ax.plot(N_plot, theoretical_omega, 'r--', label='Theoretical')
     
-    # Plot 2: Convergence iterations vs N
-    ax2.loglog(N_plot, iterations_plot, 'o-')
-    ax2.loglog(N_plot, (np.array(N_plot) + 1) / (2*np.pi) * 13.8, 'r--')
-    ax2.set_xlabel('Grid Size (N)', fontsize=12)
-    ax2.set_ylabel('Number of Iterations', fontsize=12)
-    ax2.set_title('Convergence Speed vs Grid Size', fontsize=14)
-    ax2.grid(True)
+    ax.set_xlabel('Grid Size (N)', fontsize=12)
+    ax.set_ylabel('Optimal ω', fontsize=12)
+    ax.set_title('Optimal ω vs Grid Size', fontsize=14)
+    ax.legend()
+    ax.grid(True)
+    
+    # # Plot 2: Convergence iterations vs N
+    # ax2.loglog(N_plot, iterations_plot, 'o-')
+    # ax2.loglog(N_plot, (np.array(N_plot) + 1) / (2*np.pi) * 13.8, 'r--')
+    # ax2.set_xlabel('Grid Size (N)', fontsize=12)
+    # ax2.set_ylabel('Number of Iterations', fontsize=12)
+    # ax2.set_title('Convergence Speed vs Grid Size', fontsize=14)
+    # ax2.grid(True)
     
     plt.tight_layout()
+    plt.savefig('./Images/optimal_omega_vs_N.pdf')
+    plt.show()
     
     # Print numerical results
     print("\nFinal Results:")
@@ -323,11 +341,6 @@ def find_optimal_omega(tol=1e-6, max_iter=100000):
     print("-" * 40)
     for result in optimal_results:
         print(f"{result['N']}\t{result['omega']:.4f}\t{result['iterations']}")
-    
-    # Calculate theoretical optimal omega for comparison
-    theoretical_omega = [2 / (1 + np.sin(np.pi/(N + 1))) for N in N_plot]
-    ax1.plot(N_plot, theoretical_omega, 'r--', label='Theoretical')
-    ax1.legend()
     
     return optimal_results, fig
 
@@ -373,13 +386,23 @@ if __name__ == "__main__":
     plt.tight_layout()
     plt.show()
 
-    ####### J
-    # resuts, fig = find_optimal_omega()
-    # plt.show()
+    # Plot a single solution
+    plt.figure(figsize=(10, 6))
+    plt.imshow(results[-1]['solution'], cmap='Reds', extent=[0, 1, 0, 1])
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.colorbar()
+    plt.title('Equilibrium Solution with Objects')
+    plt.savefig('./Images/final_solution_objects.pdf')
+    plt.show()
 
-    # ###### K
-    # #Centered
-    # mask1 = create_rectangle_mask((100, 100), (20, 20), (0,0))
-    # #Not centerdx
-    # mask2 = create_rectangle_mask((100, 100), (20, 20))
+    ###### J
+    resuts, fig = find_optimal_omega()
+    plt.show()
+
+    ###### K
+    #Centered
+    mask1 = create_rectangle_mask((100, 100), (20, 20), (0,0))
+    #Not centerdx
+    mask2 = create_rectangle_mask((100, 100), (20, 20))
 
