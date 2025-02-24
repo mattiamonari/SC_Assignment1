@@ -91,6 +91,7 @@ def plot_diffusion(times, solutions, time_index=-1, cmap='viridis', equilibrium_
     plt.xlabel("x")
     plt.ylabel("y")
     plt.grid(False)
+    plt.tight_layout()
     plt.show()
 
 def analytical_solution(x, t, D=1.0, terms=50):
@@ -131,6 +132,7 @@ def compare_solution(times, solutions, D=1.0, selected_times=[0.001, 0.01, 0.1, 
     plt.title('Comparison: Numerical vs Analytical')
     plt.legend()
     plt.grid(True)
+    plt.tight_layout()
     plt.show()
 
 def plot_multiple_concentrations(times, solutions, selected_times=[0, 0.001, 0.01, 0.1, 1.0]):
@@ -146,16 +148,16 @@ def plot_multiple_concentrations(times, solutions, selected_times=[0, 0.001, 0.0
     time_indices = [np.argmin(np.abs(times - t)) for t in selected_times]
 
     # Create plots
-    fig, axs = plt.subplots(1, len(selected_times), figsize=(20, 4), constrained_layout=True)
+    fig, axs = plt.subplots(2, 2, figsize=(10, 10), constrained_layout=True)
     c_min, c_max = 0, 1  # Fixed color scale for consistent comparison
-
+    axs = axs.flatten()
     for ax, idx, t in zip(axs, time_indices, selected_times):
+        print(ax)
         im = ax.imshow(solutions[idx], origin='lower', cmap='viridis',
                         extent=[0, 1, 0, 1], vmin=c_min, vmax=c_max)
         ax.set_title(f't = {t:.3f}')
         ax.set_xlabel('x')
         ax.set_ylabel('y')
-        
         fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04, label='Concentration')
 
     plt.suptitle('2D Concentration Fields at Different Times')
@@ -279,10 +281,13 @@ def animate_diffusion(times, solutions, interval=200, time_multiplier=10,
         anim.save(filename, writer='pillow', fps=10, dpi=150)  # Lower fps for slower playback
         print(f"Animation saved as {filename}.")
 
+    plt.tight_layout()
     plt.show()
 
 if __name__ == "__main__":
     
+    plt.rcParams.update({'font.size': 14})
+
     # Run the simulation
     times, solutions = diffusion_equation(N=50, T=1.0, dt=0.0001)
 

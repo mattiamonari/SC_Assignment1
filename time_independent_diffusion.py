@@ -258,12 +258,12 @@ def solve_diffusion_with_comparison(grid_size=(50, 50), tol=1e-6, max_iter=10000
             label=f"{result['name']} ({result['iterations']} iter)"
         )
     
-    plt.xlabel('Iteration', fontsize=12)
-    plt.ylabel('Error (L2 norm)', fontsize=12)
+    plt.xlabel('Iteration', fontsize=14)
+    plt.ylabel('Error (L2 norm)', fontsize=14)
     plt.title('Convergence Comparison of Different Methods with Objects', fontsize=14)
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
     plt.tight_layout()
-    plt.savefig('./Images/convergence_comparison_objects.pdf')
+    plt.savefig('./images/convergence_comparison_objects.pdf')
     
     return all_results, fig
 
@@ -317,8 +317,8 @@ def find_optimal_omega(tol=1e-6, max_iter=100000):
     theoretical_omega = [2 / (1 + np.sin(np.pi/(N + 1))) for N in N_plot]
     ax.plot(N_plot, theoretical_omega, 'r--', label='Theoretical')
     
-    ax.set_xlabel('Grid Size (N)', fontsize=12)
-    ax.set_ylabel('Optimal ω', fontsize=12)
+    ax.set_xlabel('Grid Size (N)', fontsize=14)
+    ax.set_ylabel('Optimal ω', fontsize=14)
     ax.set_title('Optimal ω vs Grid Size', fontsize=14)
     ax.legend()
     ax.grid(True)
@@ -332,7 +332,7 @@ def find_optimal_omega(tol=1e-6, max_iter=100000):
     # ax2.grid(True)
     
     plt.tight_layout()
-    plt.savefig('./Images/optimal_omega_vs_N.pdf')
+    plt.savefig('./images/optimal_omega_vs_N.pdf')
     plt.show()
     
     # Print numerical results
@@ -363,8 +363,11 @@ def create_circle_mask(grid_size, radius, center=None):
     return mask
 
 if __name__ == "__main__":
+    plt.rcParams.update({'font.size': 14})
+
     # Run comparison
     results, fig = solve_diffusion_with_comparison()
+    plt.tight_layout()
     plt.show()
     
     print(np.all(np.isclose(results[0]['solution'], results[1]['solution'], atol=1e-4) == True))
@@ -393,11 +396,13 @@ if __name__ == "__main__":
     plt.ylabel('y')
     plt.colorbar()
     plt.title('Equilibrium Solution with Objects')
-    plt.savefig('./Images/final_solution_objects.pdf')
+    plt.tight_layout()
+    plt.savefig('./images/final_solution_objects.pdf')
     plt.show()
 
     ###### J
     resuts, fig = find_optimal_omega()
+    plt.tight_layout()
     plt.show()
 
     ###### K
