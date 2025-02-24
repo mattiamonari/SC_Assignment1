@@ -42,18 +42,17 @@ def diffusion_equation(N=50, D=1.0, T=1.0, dt=0.0001, save_interval=100, output_
     while t < T:
         c_new = c.copy()
 
-        # Interior points update (five-point stencil)
         c_new[1:-1, 1:-1] = c[1:-1, 1:-1] + coef * (
             c[2:, 1:-1] + c[:-2, 1:-1] + c[1:-1, 2:] + c[1:-1, :-2] - 4 * c[1:-1, 1:-1]
         )
 
         # Periodic boundary in x-direction
-        c_new[:, 0] = c_new[:, -2]    # Left boundary from right interior
-        c_new[:, -1] = c_new[:, 1]    # Right boundary from left interior
+        c_new[:, 0] = c_new[:, -2] # Left boundary from right interior
+        c_new[:, -1] = c_new[:, 1] # Right boundary from left interior
 
         # Fixed boundary conditions in y-direction
-        c_new[0, :] = 0               # Bottom boundary (y=0)
-        c_new[-1, :] = 1              # Top boundary (y=1)
+        c_new[0, :] = 0  # Bottom boundary (y=0)
+        c_new[-1, :] = 1 # Top boundary (y=1)
 
         c = c_new
         t += dt
@@ -62,11 +61,6 @@ def diffusion_equation(N=50, D=1.0, T=1.0, dt=0.0001, save_interval=100, output_
         if iteration % save_interval == 0:
             times.append(t)
             solutions.append(c.copy())
-            # print(f"Saved at iteration {iteration}, time {t:.5f}")
-
-    # Save the entire dataset
-    # np.save(output_file, {'times': np.array(times), 'solutions': np.array(solutions)})
-    # print(f"Simulation complete. Data saved to {output_file}.")
 
     return np.array(times), np.array(solutions)
 
@@ -85,7 +79,6 @@ def plot_diffusion(times, solutions, time_index=-1, cmap='viridis', equilibrium_
     plt.imshow(solutions[time_index], cmap=cmap, origin='lower', extent=[0, 1, 0, 1])
     plt.colorbar(label="Concentration")
 
-    # Title adjusted for equilibrium visualization
     if equilibrium_label:
         plt.title(f"2D Concentration Field at Equilibrium (t={times[time_index]:.3f})")
     else:
@@ -150,9 +143,8 @@ def plot_multiple_concentrations(times, solutions, selected_times=[0, 0.001, 0.0
     # Find closest indices in numerical data for selected times
     time_indices = [np.argmin(np.abs(times - t)) for t in selected_times]
 
-    # Create plots
     fig, axs = plt.subplots(2, 2, figsize=(10, 10), constrained_layout=True)
-    c_min, c_max = 0, 1  # Fixed color scale for consistent comparison
+    c_min, c_max = 0, 1 
     axs = axs.flatten()
     for ax, idx, t in zip(axs, time_indices, selected_times):
         print(ax)
@@ -205,24 +197,22 @@ def diffusion_equation_until_equilibrium(N=50, D=1.0, dt=0.0001, save_interval=1
 
     print(f"Starting simulation with tolerance={tolerance} and max_iterations={max_iterations}...")
 
-    # Iterate until equilibrium (based on tolerance)
     while iteration < max_iterations:
         c_new = c.copy()
 
-        # Interior points update (five-point stencil)
         c_new[1:-1, 1:-1] = c[1:-1, 1:-1] + coef * (
             c[2:, 1:-1] + c[:-2, 1:-1] + c[1:-1, 2:] + c[1:-1, :-2] - 4 * c[1:-1, 1:-1]
         )
 
         # Periodic boundary implementation
-        c_new[:, 0] = c_new[:, -2]    # Left boundary from right interior
-        c_new[:, -1] = c_new[:, 1]    # Right boundary from left interior
+        c_new[:, 0] = c_new[:, -2] # Left boundary from right interior
+        c_new[:, -1] = c_new[:, 1] # Right boundary from left interior
 
         # Fixed boundary conditions in y-direction
-        c_new[0, :] = 0               # Bottom boundary (y=0)
-        c_new[-1, :] = 1              # Top boundary (y=1)
+        c_new[0, :] = 0 # Bottom boundary (y=0)
+        c_new[-1, :] = 1 # Top boundary (y=1)
 
-        # Check for equilibrium (max change below tolerance)
+        # Check for equilibrium
         max_change = np.max(np.abs(c_new - c))
         if max_change < tolerance:
             print(f"Equilibrium reached at t={t:.5f} after {iteration} iterations with max change {max_change:.2e}.")
@@ -234,18 +224,12 @@ def diffusion_equation_until_equilibrium(N=50, D=1.0, dt=0.0001, save_interval=1
         t += dt
         iteration += 1
 
-        # Save intermediate results
         if iteration % save_interval == 0:
             times.append(t)
             solutions.append(c.copy())
-            # print(f"Saved at iteration {iteration}, time {t:.5f}, max change {max_change:.2e}")
 
     else:
         print(f"Maximum iterations reached ({max_iterations}) without convergence.")
-
-    # Save the entire dataset
-    # np.save(output_file, {'times': np.array(times), 'solutions': np.array(solutions)})
-    # print(f"Simulation complete. Data saved to {output_file}.")
 
     return np.array(times), np.array(solutions), t
 
@@ -279,9 +263,8 @@ def animate_diffusion(times, solutions, interval=200, time_multiplier=10,
 
     anim = animation.FuncAnimation(fig, update, frames=len(times), interval=interval, blit=True)
 
-    # Save as .gif if requested
     if save_animation:
-        anim.save(filename, writer='pillow', fps=10, dpi=150)  # Lower fps for slower playback
+        anim.save(filename, writer='pillow', fps=10, dpi=150)  
         print(f"Animation saved as {filename}.")
 
     plt.tight_layout()
@@ -291,24 +274,16 @@ if __name__ == "__main__":
     
     plt.rcParams.update({'font.size': 14})
 
-    # Run the simulation
     times, solutions = diffusion_equation(N=50, T=1.0, dt=0.0001)
-
-    # Plot the final 2D concentration field
     plot_diffusion(times, solutions)
 
     # Compare numerical and analytical solutions
     compare_solution(times, solutions, D=1.0, selected_times=[0.001, 0.01, 0.1, 1.0])
-
-    # Plot the results at specified time points
     plot_multiple_concentrations(times, solutions, selected_times=[0, 0.001, 0.01, 0.1, 1.0])
 
-    # Run the simulation until equilibrium
-    eq_times, eq_solutions, eq_time = diffusion_equation_until_equilibrium(N=50, dt=0.0001, tolerance=1e-6)
 
-    # Plot the final 2D concentration field at equilibrium
+    eq_times, eq_solutions, eq_time = diffusion_equation_until_equilibrium(N=50, dt=0.0001, tolerance=1e-6)
     plot_diffusion(eq_times, eq_solutions, equilibrium_label=True)
 
-    # Create and display a slowed-down animation
     animate_diffusion(eq_times, eq_solutions, interval=300, time_multiplier=100, save_animation=True,
-                    filename='diffusion_to_equilibrium_slow.gif')
+                    filename='./Images/diffusion_to_equilibrium_slow.gif')

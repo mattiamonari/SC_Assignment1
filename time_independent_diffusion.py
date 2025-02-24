@@ -183,13 +183,6 @@ def solve_diffusion(grid_size=(100, 100), method='jacobi', omega=1.0, tol=1e-6, 
             c_old = c.copy()
             core_sor(c, c_init, omega, objects_masks)
             error = np.linalg.norm(c - c_old)
-        
-        # Apply object masks if provided
-        # for object_mask in objects_masks:
-        #     for i in range(c.shape[0]):
-        #         for j in range(c.shape[1]):
-        #             if not object_mask[i, j]:
-        #                 c[i, j] = 0  # Sink has zero concentration
 
         errors.append(error)
         
@@ -231,13 +224,6 @@ def solve_diffusion_with_comparison(grid_size=(50, 50), tol=1e-6, max_iter=10000
             max_iter=max_iter,
             objects_masks=objects_masks
         )
-
-        # fig, ax = plt.subplots(1, 1)
-        # im = ax.imshow(create_rectangle_mask(grid_size, (20, 1), (50, 50)), cmap='Reds', extent=[0, 1, 0, 1])
-        # ax.set_xlabel('x')
-        # ax.set_ylabel('y')
-        # plt.colorbar(im, ax=ax)
-        # plt.show()
 
         all_results.append({
             **config,
@@ -325,13 +311,6 @@ def find_optimal_omega(tol=1e-6, max_iter=100000, N_values=None, objects_masks=N
     ax.legend()
     ax.grid(True)
     
-    # # Plot 2: Convergence iterations vs N
-    # ax2.loglog(N_plot, iterations_plot, 'o-')
-    # ax2.loglog(N_plot, (np.array(N_plot) + 1) / (2*np.pi) * 13.8, 'r--')
-    # ax2.set_xlabel('Grid Size (N)', fontsize=12)
-    # ax2.set_ylabel('Number of Iterations', fontsize=12)
-    # ax2.set_title('Convergence Speed vs Grid Size', fontsize=14)
-    # ax2.grid(True)
     
     plt.tight_layout()
     plt.savefig(f'./images/optimal_omega_vs_N{objects_added}.pdf')
